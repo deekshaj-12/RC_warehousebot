@@ -1,0 +1,191 @@
+import cv2
+import numpy as np
+import math as mt
+
+def getContours(img):
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    for cnt in contours:
+        cv2.drawContours(imgContour, cnt, -1, (255, 0, 0), 2)
+        peri = cv2.arcLength(cnt, True)
+        approx = cv2.approxPolyDP(cnt, 0.0000000002 * peri, True)
+        #print(len(approx))
+        objCor = approx
+        #print(objCor)
+    nc=getCentre(contours,img)
+    return nc
+
+def getCentre(cnts,img):
+    nc=[]
+    for c in cnts:
+        M = cv2.moments(c)
+
+        try:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+        except ZeroDivisionError:
+            print("Division by Zero!")
+        nc.append([cX,cY])
+        ctr=(cX,cY)
+        #print(ctr)
+        cv2.circle(imgContour, ctr, 2, (255, 255, 255), -1)
+        cv2.circle(imgContour2, ctr, 12,(255, 255, 255), -1)
+    return nc
+
+
+img = cv2.imread(r"C:\Users\Chetna\OneDrive\Pictures\Saved Pictures\hd.jpg")
+imgContour = img.copy()
+imgContour2 = img.copy()
+img2 = img.copy()
+kernel = np.ones((5,5),np.uint8)
+
+imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+imgBlur = cv2.GaussianBlur(imgGray, (7, 7), 1)
+imgDia = cv2.dilate(imgBlur,kernel,iterations=3)
+imgCanny = cv2.Canny(imgDia, 50, 50)
+imgDia2 = cv2.dilate(imgCanny,kernel,iterations=2)
+nc=getContours(imgDia2)
+imgBlank = np.zeros_like(img)
+
+imgNew = cv2.resize(imgContour2,(500,480))
+#imgContour=cv2.resize(imgContour,(500, 480))
+#cv2.imshow("nodes",imgContour2)
+#cv2.imshow("new",imgContour)
+
+gray = cv2.cvtColor(imgContour2, cv2.COLOR_BGR2GRAY)
+blur = cv2.blur(gray, (8,8))
+ret, thresh = cv2.threshold(blur, 127, 255, cv2.THRESH_BINARY)
+
+blank=np.zeros(( 800,900,3),dtype='uint8')
+
+edges= cv2.Canny (thresh, 25, 150, 3)
+cv2.imshow('edges', edges)
+
+lines = cv2.HoughLinesP(edges, 0.9, np.pi/360, 25, minLineLength=9, maxLineGap=10)
+
+#print(len(nc))
+l1=[]
+
+
+for line in lines:
+    x1,y1, x2,y2= line[0]
+    
+    l1.append([x1,y1,x2,y2])
+    cv2.line (img2, (x1,y1), (x2, y2), (0,255, 0), 2)
+
+ncc=[]
+
+for i in range(0,len(nc)):
+    for j in range(i+1,len(nc)):
+        for k in l1:
+            
+            if (mt.dist(nc[i],[k[0],k[1]])<40 and mt.dist(nc[j],[k[2],k[3]])<40 ) or (mt.dist(nc[j],[k[0],k[1]])<40 and mt.dist(nc[i],[k[2],k[3]])<40):
+                cv2.line (img, (nc[i][0],nc[i][1]), (nc[j][0],nc[j][1]), (0,255, 0), 2)
+                ncc.append([nc[i],nc[j]])
+                break
+for i in ncc:
+    #print(i)
+    pass
+
+#hardcoding part
+for i in range(len(nc)):
+    #print(nc[i],i)
+    cv2.putText(img, str(i), (nc[i][0]+20,nc[i][1]+20), cv2.FONT_HERSHEY_COMPLEX, 0.5, 0, 1)
+    cv2.circle(img,(nc[i][0],nc[i][1]),10,(0,255,0),2)
+
+ncc.append([nc[1],nc[10]])
+cv2.line (img, (nc[1][0],nc[1][1]), (nc[10][0],nc[10][1]), (0,255, 0), 2)
+ncc.append([nc[0],nc[7]])
+cv2.line (img, (nc[0][0],nc[0][1]), (nc[7][0],nc[7][1]), (0,255, 0), 2)
+ncc.append([nc[28],nc[36]])
+cv2.line (img, (nc[28][0],nc[28][1]), (nc[36][0],nc[36][1]), (0,255, 0), 2)
+ncc.append([nc[35],nc[36]])
+cv2.line (img, (nc[35][0],nc[35][1]), (nc[36][0],nc[36][1]), (0,255, 0), 2)
+ncc.append([nc[35],nc[23]])
+cv2.line (img, (nc[35][0],nc[35][1]), (nc[23][0],nc[23][1]), (0,255, 0), 2)
+
+d={}
+for i in range(len(nc)):
+    
+    l=[]
+    for j in ncc:
+        if nc[i]==j[0]:
+            for k in range(len(nc)):
+                if nc[k]==j[1]:
+                    x=k
+            m=[]
+            m.append(x)
+            m.append(j[1][0])
+            m.append(j[1][1])
+            m.append(int(mt.dist(nc[i],j[1])))
+            l.append(m)
+            
+        elif nc[i]==j[1]:
+            for k in range(len(nc)):
+                if nc[k]==j[0]:
+                    x=k
+            m=[]
+            m.append(x)
+            m.append(j[0][0])
+            m.append(j[0][1])
+            m.append(int(mt.dist(nc[i],j[0])))
+            l.append(m)
+    y=[i]
+    y.append(nc[i][0])
+    y.append(nc[i][1])
+    d[tuple(y)]=tuple(l)
+    
+for i in d:
+    #print(i ,":", d[i])
+    pass
+
+ori=[28,nc[28][0],nc[28][1]]
+
+ori=tuple(ori)
+fdes=tuple(nc[14])
+des=14
+
+p=[]
+z=[]
+
+#orr=num of node
+
+g=[28]
+
+def path(g):
+    print(p,z,g)
+    g1=[]
+    for q in g:
+
+        ori=[q,nc[q][0],nc[q][1]]
+
+        ori=tuple(ori)
+        x=[]
+        x.extend(p)
+        n=len(x)
+
+        for i in range(n):
+            for j in d:
+                if j==d[ori]:
+                    if j[0]==des:
+                        m=[]
+                        m.extend(x[i])
+                        m.append(j[0])
+                        z.append(m)
+                    else:
+                        m=[]
+                        m.extend(x[i])
+                        m.append(j[0])
+                        p.append(m)
+                        print(m)
+                g1.append(j[0])
+                p.remove(p[i])
+    print(g1)
+    path(g1)
+path(g)           
+print(p)                
+                    
+
+
+cv2.imshow('lines',img)
+cv2.imshow('lins',img2)
+cv2.waitKey(0)
