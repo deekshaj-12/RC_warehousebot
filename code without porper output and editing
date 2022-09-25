@@ -1,0 +1,264 @@
+import cv2
+import numpy as np
+import math as mt
+
+def getNodes(img):
+
+    def getContours(img):
+        contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        for cnt in contours:
+            cv2.drawContours(imgContour, cnt, -1, (255, 0, 0), 2)
+            peri = cv2.arcLength(cnt, True)
+            #print(int(peri/2))
+            dist=str(int(peri/2))
+            approx = cv2.approxPolyDP(cnt, 0.0000000002 * peri, True)
+            #print(len(approx))
+            objCor = approx
+            #print(objCor)
+            x, y, w, h = cv2.boundingRect(approx)
+
+            #cv2.putText(imgContour, dist,(x + (w // 2) - 10, y + (h // 2) - 10), cv2.FONT_HERSHEY_COMPLEX, 0.7,(0, 0, 0), 2)
+            
+        nc=getCentre(contours,img)
+        return nc
+
+    def getCentre(cnts,img):
+        nc=[]
+        i=0
+        for c in cnts:
+
+            M = cv2.moments(c)
+            try:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+            except ZeroDivisionError:
+                print("Division by Zero!")
+            ctr=(cX,cY)
+            #print(ctr)
+            nc.append([cX,cY])
+            cv2.circle(imgContour, ctr, 2, (255, 255, 255), -1)
+            cv2.circle(imgContour2, ctr, 12,(255, 255, 255), -1)
+
+            cv2.putText(imgContour, str(i),(cX + 10,cY + 10), cv2.FONT_HERSHEY_COMPLEX, 0.7,(0, 255, 0), 2)
+            i+=1
+        return nc
+            
+
+    nc=getContours(img)
+    return nc
+
+def getLinePeri(img,nc):
+    
+    def getContours(img,nc):
+        d={}
+        ncc=[]
+        contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        for cnt in contours:
+            cv2.drawContours(imgContour, cnt, -1, (255, 0, 0), 2)
+            peri = cv2.arcLength(cnt, True)
+            #print(int(peri/2))
+            dist=str(int(peri/2))
+            approx = cv2.approxPolyDP(cnt, 0.0000000002 * peri, True)
+            #print(len(approx))
+            s=0.5
+            x1=approx[0][0][0]
+            y1=approx[0][0][1]
+            x2=approx[int(s*len(approx))][0][0]
+            y2=approx[int(s*len(approx))][0][1]
+            
+            
+            #print(nc1)
+            if mt.dist([x1,y1],[x2,y2])>20:
+                for i in range(0,len(nc)):
+                    
+                    
+                    for j in range(i+1,len(nc)):
+                        
+                        
+                        if (mt.dist(nc[i],[x1,y1])<30 and mt.dist(nc[j],[x2,y2])<30 ) or (mt.dist(nc[j],[x1,y1])<30 and mt.dist(nc[i],[x2,y2])<30):
+                            
+                            cv2.line (imgContour, (nc[i][0], nc[i][1]), (nc[j][0], nc[j][1]), (0,255,0), 2)
+                            if [i,j,int(dist)] not in ncc:
+                                ncc.append([i,j,int(dist)])
+                        else:
+                            for s in range(45,56):
+                                s=s/100
+                                x2=approx[int(s*len(approx))][0][0]
+                                y2=approx[int(s*len(approx))][0][1]
+                                if (mt.dist(nc[i],[x1,y1])<30 and mt.dist(nc[j],[x2,y2])<30 ) or (mt.dist(nc[j],[x1,y1])<30 and mt.dist(nc[i],[x2,y2])<30):
+                            
+                                    cv2.line (imgContour, (nc[i][0], nc[i][1]), (nc[j][0], nc[j][1]), (0,255,0), 2)
+                                    if [i,j,int(dist)] not in ncc:
+                                        ncc.append([i,j,int(dist)])
+
+                            
+            objCor = approx
+            #print(objCor)
+            x, y, w, h = cv2.boundingRect(approx)
+
+            cv2.putText(imgContour, dist,(x + (w // 2) - 10, y + (h // 2) - 10), cv2.FONT_HERSHEY_COMPLEX, 0.7,(0, 0, 0), 2)
+        #print(ncc)
+        #print(len(ncc))
+        getCentre(contours,img)
+        return ncc
+
+    def getCentre(cnts,img):
+        i = 0
+        for c in cnts:
+
+            M = cv2.moments(c)
+            try:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+            except ZeroDivisionError:
+                print("Division by Zero!")
+            ctr=(cX,cY)
+            #print(ctr)
+            cv2.circle(imgContour, ctr, 2, (255, 255, 255), -1)
+            cv2.circle(imgContour2, ctr, 12,(255, 255, 255), -1)
+            
+
+            #cv2.putText(imgContour, str(i),(cX + 10,cY + 10), cv2.FONT_HERSHEY_COMPLEX, 0.7,(0, 255, 0), 2)
+            i=i+1
+            
+    ncc=getContours(img,nc)
+    return ncc
+    
+    
+
+img = cv2.imread(r"C:\Users\Chetna\OneDrive\Pictures\Saved Pictures\hd.jpg")
+imgContour = img.copy()
+imgContour2 = img.copy()
+kernel = np.ones((5,5),np.uint8)
+
+imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+imgBlur = cv2.GaussianBlur(imgGray, (7, 7), 1)
+imgDia = cv2.dilate(imgBlur,kernel,iterations=3)
+imgCanny = cv2.Canny(imgDia, 50, 50)
+imgDialate = cv2.dilate(imgCanny,kernel,iterations=2)
+
+nc=getNodes(imgDialate)
+
+#print(nc)
+
+imgBlank = np.zeros_like(img)
+
+#cv2.imshow("nodes",imgContour)
+#cv2.imshow("new",imgContour2)
+
+imgBlur2 = cv2.GaussianBlur(imgContour2, (7,7), 1)
+imgDia2 = cv2.dilate(imgBlur2,kernel,iterations=1)
+imgCanny2 = cv2.Canny(imgDia2, 70,70)
+imgDialate2 = cv2.dilate(imgCanny2,kernel,iterations=1)
+
+
+ncc=getLinePeri(imgDialate2,nc)
+
+d={}
+for i in range(len(nc)):
+    
+    l=[]
+    for j in ncc:
+        if i==j[0]:
+            l.append([j[1],j[2]])
+           
+        elif i==j[1]:
+            l.append([j[0],j[2]])
+            
+    d[i]=l
+
+for i in d:
+    #print(i ,":", d[i])
+    pass
+
+des=22
+
+p=[]
+z=[]
+
+#orr=num of node
+
+
+p=[[28]]
+def path(p):
+    #print(p,z,g)
+    
+    
+    x=[]
+    x.extend(p)
+    n=len(x)
+    #print(x)
+    for i in range(n):
+        q=x[i][len(x[i])-1]
+        
+        bre=0
+        
+        #print(ori)
+        for j in d:
+            
+            if j==q:
+                
+                for k in d[j]:
+                    #print(k[0])
+                    if k[0]==des:
+                        m=[]
+                        m.extend(x[i])
+                        m.append(k[0])
+                        z.append(m)
+                        bre=1
+                        break
+                    else:
+                        m=[]
+                        m.extend(x[i])
+                        #print(m)
+                    
+                        m.append(k[0])
+                        p.append(m)
+                        #print(m)
+                if bre==1:
+                    break
+            if bre==1:
+                
+                break
+                            
+        p.remove(x[i])
+    
+            
+
+    dd=[]
+    dd.extend(p)
+    for ab in dd:
+        for bc in range(len(ab)):
+            if ab.count(ab[bc])>1:
+                
+                p.remove(ab)
+                break
+    #print(p)
+    if len(p)==0:
+        return
+    path(p)
+path(p)           
+print(z)
+
+c1=999999
+w=[]
+for i in z:
+    c=0
+    for j in range(len(i)-1):
+        for k in d:
+            if i[j]==k:
+                for l in d[k]:
+                    if l[0]==i[j+1]:
+                        c+=l[1]
+    if c<c1:
+        w=i
+        c1=c
+
+print(w,c1)
+    
+                    
+print("ok")
+
+cv2.imshow("final",imgContour)
+
+cv2.waitKey(0)
