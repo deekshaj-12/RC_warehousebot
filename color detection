@@ -1,0 +1,40 @@
+import cv2
+import numpy as np
+import math as mt
+
+def clrDetect(img,l,u) :
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    # lower bound and upper bound for Green color
+    lower_bound = np.array(l)
+    upper_bound = np.array(u)
+    # find the colors within the boundaries
+    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+
+    kernel = np.ones((7,7),np.uint8)
+    # Remove unnecessary noise from mask
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    segmented_img = cv2.bitwise_and(img, img, mask=mask)
+
+    contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    output = cv2.drawContours(img, contours, -1, (0, 0, 0), 2)
+    
+    #find centre point using midpoint of diagonal
+    #for cnt in contours :
+
+
+
+img = cv2.imread('colour packages.png')
+
+red_l = [169,100,100]
+red_u = [189,255,255]
+blue_l=[110,50,50]
+blue_u=[130,255,255]
+green_l=[50,20,20]
+green_u=[100,255,255]
+
+clrDetect(img,red_l,red_u)
+cv2.imshow("Output", img)
+
+cv2.waitKey(0)
